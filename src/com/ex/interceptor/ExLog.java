@@ -1,19 +1,32 @@
 package com.ex.interceptor;
 
 
+import java.util.Map;
+
+
 public class ExLog {
 	//sessionObject
-	private Object object;
-	
-	public void setObject(Object object) {
-		this.object = object;
+	private Map<String,Object> sessionObjects;
+
+	public Map<String, Object> getSessionObjects() {
+		return sessionObjects;
 	}
-	public Object getObject() {
-		return object;
+
+	public void setSessionObjects(Map<String, Object> sessionObjects) {
+		this.sessionObjects = sessionObjects;
 	}
+
 	@Override
 	public String toString() {
-		return "Log [SessionObject=" + object + "]";
+		StringBuffer stringBuffer=new StringBuffer("Log[SessionObjects=");
+		for (Map.Entry<String,Object> entry:sessionObjects.entrySet()){
+			stringBuffer.append("{");
+			stringBuffer.append(entry.getKey());
+			stringBuffer.append(":");
+			stringBuffer.append(entry.getValue());
+			stringBuffer.append("}");
+		}
+		return stringBuffer.toString();
 	}
 	
 }

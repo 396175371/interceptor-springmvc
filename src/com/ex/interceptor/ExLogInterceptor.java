@@ -3,6 +3,7 @@ package com.ex.interceptor;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -17,16 +18,29 @@ import org.springframework.web.servlet.ModelAndView;
 
 public class ExLogInterceptor implements HandlerInterceptor {
 	private  final Logger logger = LoggerFactory.getLogger(ExLogInterceptor.class);
+	//session_key，用逗号分隔开
 	private String session_key;
+	//默认false
+	//开启进入方法打印Attribute
+	private boolean needEnterAttr;
+	//开启进入方法打印Parameter
+	private boolean needEnterParam;
+	//开启退出方法打印Attribute
+	private boolean needExitAttr;
 
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
 		try{
 			if(handler instanceof HandlerMethod){
 				ExLog Log=new ExLog();
-				Object object=new Object();
+				Map<String,Object> sessionObjects=new ConcurrentHashMap<String,Object>();
 				if(!StringUtils.isEmpty(getSession_key())){
-					object=request.getSession().getAttribute(getSession_key());
-					Log.setObject(object);
+					//使用逗号分隔
+					String[] session_keys=getSession_key().replaceAll("，", ",").split(",");
+					for(String session_key:session_keys){
+						Object object=request.getSession().getAttribute(session_key);
+						sessionObjects.put(session_key, object);
+					}
+					Log.setSessionObjects(sessionObjects);
 					//通过threadLocal保存当前登录用户
 					ExLogUtil.setThreadLocalLog(Log);
 				}
@@ -37,21 +51,26 @@ public class ExLogInterceptor implements HandlerInterceptor {
 				String clazzName=clazz.getName();
 				//请求的方法名
 				String methodName=method.getMethod().getName();
-				//遍历请求中Attribute
-				Enumeration attrNames= request.getAttributeNames();
-				while(attrNames.hasMoreElements()){
-					String name=(String) attrNames.nextElement();
-					Object Attrobject=request.getAttribute(name);
-					logger.info("开始访问:controller:"+clazzName+",controllerMethod:"+methodName+",Attrname:"+name+"value:"+Attrobject.toString());
+				if(needEnterAttr){
+					//遍历请求中Attribute
+					Enumeration attrNames= request.getAttributeNames();
+					while(attrNames.hasMoreElements()){
+						String name=(String) attrNames.nextElement();
+						Object Attrobject=request.getAttribute(name);
+						logger.info("开始访问:controller:"+clazzName+",controllerMethod:"+methodName+",Attrname:"+name+"value:"+Attrobject.toString());
+					}
 				}
-				//遍历请求中param
-				Map<String, Object> paramMap=request.getParameterMap();
-				for(Entry<String, Object> entry:paramMap.entrySet()){
-					System.out.println("key:"+entry.getKey()+",value:"+entry.getValue().toString());
-					logger.info("开始访问:controller:"+clazzName+",controllerMethod:"+methodName+",Param:key:"+entry.getKey()+",value:"+entry.getValue().toString());
+				if(needEnterParam){
+					//遍历请求中param
+					Map<String, Object> paramMap=request.getParameterMap();
+					for(Entry<String, Object> entry:paramMap.entrySet()){
+						System.out.println("key:"+entry.getKey()+",value:"+entry.getValue().toString());
+						logger.info("开始访问:controller:"+clazzName+",controllerMethod:"+methodName+",Param:key:"+entry.getKey()+",value:"+entry.getValue().toString());
 
+					}
 				}
-				logger.info("开始访问:controller:"+clazzName+",controllerMethod:"+methodName+",user:"+ExLogUtil.getThreadLocalLog().toString());
+
+				logger.info("开始访问:controller:"+clazzName+",controllerMethod:"+methodName+",sessionKV:"+ExLogUtil.getThreadLocalLog().toString());
 
 				return true;
 			}
@@ -69,7 +88,7 @@ public class ExLogInterceptor implements HandlerInterceptor {
 				Class<?> clazz=method.getMethod().getDeclaringClass();
 				String clazzName=clazz.getName();
 				String methodName=method.getMethod().getName();
-				logger.info("访问:controller:"+clazzName+",controllerMethod:"+methodName+",user:"+ExLogUtil.getThreadLocalLog().toString());
+				logger.info("访问:controller:"+clazzName+",controllerMethod:"+methodName+",sessionKV:"+ExLogUtil.getThreadLocalLog().toString());
 			}
 		}catch (Exception e){
 			e.printStackTrace();
@@ -80,11 +99,21 @@ public class ExLogInterceptor implements HandlerInterceptor {
 			throws Exception {
 		try{
 			if(handler instanceof HandlerMethod){
+
 				HandlerMethod method=(HandlerMethod)handler;
 				Class<?> clazz=method.getMethod().getDeclaringClass();
 				String clazzName=clazz.getName();
 				String methodName=method.getMethod().getName();
-				logger.info("访问结束:controller:"+clazzName+",controllerMethod:"+methodName+",user:"+ExLogUtil.getThreadLocalLog().toString());
+				if(needExitAttr){
+					//遍历离开方法set如的Attribute
+					Enumeration attrNames= request.getAttributeNames();
+					while(attrNames.hasMoreElements()){
+						String name=(String) attrNames.nextElement();
+						Object Attrobject=request.getAttribute(name);
+						logger.info("访问结束:controller:"+clazzName+",controllerMethod:"+methodName+",Attrname:"+name+"value:"+Attrobject.toString());
+					}
+				}
+				logger.info("访问结束:controller:"+clazzName+",controllerMethod:"+methodName+",sessionKV:"+ExLogUtil.getThreadLocalLog().toString());
 				ExLogUtil.remove();
 			}
 		}catch (Exception e){
