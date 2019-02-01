@@ -19,13 +19,16 @@ public class ExLog {
 	@Override
 	public String toString() {
 		StringBuffer stringBuffer=new StringBuffer("Log[SessionObjects=");
-		for (Map.Entry<String,Object> entry:sessionObjects.entrySet()){
-			stringBuffer.append("{");
-			stringBuffer.append(entry.getKey());
-			stringBuffer.append(":");
-			stringBuffer.append(entry.getValue());
-			stringBuffer.append("}");
-		}
+		if(null!=sessionObjects){
+            for (Map.Entry<String,Object> entry:sessionObjects.entrySet()){
+                stringBuffer.append("{");
+                stringBuffer.append(entry.getKey());
+                stringBuffer.append(":");
+                stringBuffer.append(entry.getValue());
+                stringBuffer.append("}");
+            }
+        }
+        stringBuffer.append("]");
 		return stringBuffer.toString();
 	}
 	

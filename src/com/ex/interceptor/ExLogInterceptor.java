@@ -1,9 +1,9 @@
 package com.ex.interceptor;
 
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -22,23 +22,23 @@ public class ExLogInterceptor implements HandlerInterceptor {
 	private String session_key;
 	//默认false
 	//开启进入方法打印Attribute
-	private boolean needEnterAttr;
+	private String needEnterAttr;
 	//开启进入方法打印Parameter
-	private boolean needEnterParam;
+	private String needEnterParam;
 	//开启退出方法打印Attribute
-	private boolean needExitAttr;
+	private String needExitAttr;
 
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
 		try{
 			if(handler instanceof HandlerMethod){
 				ExLog Log=new ExLog();
-				Map<String,Object> sessionObjects=new ConcurrentHashMap<String,Object>();
+				Map<String,Object> sessionObjects=new HashMap<String,Object>();
 				if(!StringUtils.isEmpty(getSession_key())){
 					//使用逗号分隔
 					String[] session_keys=getSession_key().replaceAll("，", ",").split(",");
 					for(String session_key:session_keys){
 						Object object=request.getSession().getAttribute(session_key);
-						sessionObjects.put(session_key, object);
+						sessionObjects.put(session_key, object==null?"":object);
 					}
 					Log.setSessionObjects(sessionObjects);
 					//通过threadLocal保存当前登录用户
@@ -51,7 +51,7 @@ public class ExLogInterceptor implements HandlerInterceptor {
 				String clazzName=clazz.getName();
 				//请求的方法名
 				String methodName=method.getMethod().getName();
-				if(needEnterAttr){
+				if(null!=getNeedEnterAttr()&&"true".equals(getNeedEnterAttr())){
 					//遍历请求中Attribute
 					Enumeration attrNames= request.getAttributeNames();
 					while(attrNames.hasMoreElements()){
@@ -60,7 +60,7 @@ public class ExLogInterceptor implements HandlerInterceptor {
 						logger.info("开始访问:controller:"+clazzName+",controllerMethod:"+methodName+",Attrname:"+name+"value:"+Attrobject.toString());
 					}
 				}
-				if(needEnterParam){
+				if(null!=getNeedEnterParam()&&"true".equals(getNeedEnterParam())){
 					//遍历请求中param
 					Map<String, Object> paramMap=request.getParameterMap();
 					for(Entry<String, Object> entry:paramMap.entrySet()){
@@ -104,7 +104,7 @@ public class ExLogInterceptor implements HandlerInterceptor {
 				Class<?> clazz=method.getMethod().getDeclaringClass();
 				String clazzName=clazz.getName();
 				String methodName=method.getMethod().getName();
-				if(needExitAttr){
+				if(null!=getNeedExitAttr()&&"true".equals(getNeedExitAttr())){
 					//遍历离开方法set如的Attribute
 					Enumeration attrNames= request.getAttributeNames();
 					while(attrNames.hasMoreElements()){
@@ -127,5 +127,33 @@ public class ExLogInterceptor implements HandlerInterceptor {
 
 	public void setSession_key(String session_key) {
 		this.session_key = session_key;
+	}
+
+	public Logger getLogger() {
+		return logger;
+	}
+
+	public String getNeedEnterAttr() {
+		return needEnterAttr;
+	}
+
+	public void setNeedEnterAttr(String needEnterAttr) {
+		this.needEnterAttr = needEnterAttr;
+	}
+
+	public String getNeedEnterParam() {
+		return needEnterParam;
+	}
+
+	public void setNeedEnterParam(String needEnterParam) {
+		this.needEnterParam = needEnterParam;
+	}
+
+	public String getNeedExitAttr() {
+		return needExitAttr;
+	}
+
+	public void setNeedExitAttr(String needExitAttr) {
+		this.needExitAttr = needExitAttr;
 	}
 }
